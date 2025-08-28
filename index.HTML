@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>/ hate tasks</title>
+    <style>
+        :root {
+            --bg-color: #FAF9F6;
+            --text-color: #222;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --black: #000;
+            --border-color: #e5e7eb;
+            --golden-yellow: #FBBF24;
+            --green-confirm: #22c55e;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            font-size: 16px;
+        }
+        
+        /* Folder Selection Overlay */
+        #folder-selection-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: var(--bg-color);
+            display: none; /* Initially hidden, shown by JS if needed */
+            align-items: center;
+            justify-content: center;
+            z-index: 300;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        #folder-selection-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #folder-selection-box p {
+            color: var(--gray-500);
+            margin: 0 0 2rem 0;
+            font-size: 1rem;
+        }
+
+        #select-folder-button {
+            background-color: var(--black);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 0;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        #select-folder-button:hover {
+            opacity: 0.8;
+        }
+
+
+        /* Launcher Overlay */
+        #launch-overlay {
+            position: fixed;
+            inset: 0;
+            background-color: var(--bg-color);
+            display: none; /* Changed from flex */
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            transition: opacity 0.5s ease-out;
+        }
+        #launch-app-title {
+            position: absolute;
+            top: 1.5rem;
+            right: 2rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+            display: flex;
+            align-items: center;
+        }
+        #launch-box {
+            text-align: center;
+            padding: 2rem;
+        }
+        #launch-phrase {
+            font-size: 1.5rem;
+            color: var(--text-color);
+            margin: 0 0 2rem 0;
+            min-height: 2rem;
+            transition: opacity 0.3s;
+        }
+        #launch-button {
+            background-color: var(--black);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 0;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+        #launch-button:hover {
+            opacity: 0.8;
+        }
+        #launch-button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+        
+        /* Main App Layout */
+        #app-wrapper {
+            display: none;
+        }
+        #app-container {
+            min-height: auto;
+            padding: 0 2rem;
+            max-width: 800px;
+            margin: 0;
+        }
+        
+        #app-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            padding: 1.5rem 2rem 0.5rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .golden-char {
+            display: inline-block;
+            width: 0.15em;
+            height: 1.1em;
+            background-color: var(--golden-yellow);
+            margin-right: 0.25rem;
+            vertical-align: text-bottom;
+            transition: opacity 0.3s;
+        }
+        
+        .title-text-wrapper {
+            transition: opacity 0.3s;
+        }
+
+        #transition-cursor {
+            position: fixed;
+            background-color: var(--golden-yellow);
+            z-index: 201; /* Above launch overlay */
+            transition: width 0.4s ease-in-out, left 0.4s ease-in-out;
+        }
+
+        /* Header and Tab Bar */
+        #tab-bar-container {
+            display: flex;
+            align-items: center;
+            position: relative;
+            background-color: var(--bg-color);
+            padding-top: 0.5rem; /* give some space from top */
+        }
+        
+        .tab-scroll-button {
+            display: none; /* Hidden by default */
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-family: inherit;
+            color: var(--gray-500);
+            line-height: 1;
+            align-items: center;
+            justify-content: center;
+        }
+        .tab-scroll-button:hover {
+            color: var(--black);
+        }
+
+        #tabs-viewport {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #tabs-scroll-container {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            display: flex;
+            align-items: center;
+        }
+        #tabs-scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        #tabs-nav {
+            display: flex;
+            align-items: center;
+            flex-wrap: nowrap;
+        }
+        
+        #tab-progress-container {
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            display: none;
+        }
+        #tab-progress-bar {
+            height: 100%;
+            background-color: var(--gray-500);
+            will-change: width, transform;
+        }
+
+        .tab-wrapper {
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .tab-button {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+            transition: color 200ms;
+            border: none;
+            cursor: pointer;
+            background-color: transparent;
+            color: var(--gray-500);
+            white-space: nowrap;
+        }
+
+        .tab-button:hover {
+            background-color: transparent;
+            color: var(--black);
+        }
+        
+        .tab-button.active {
+            color: var(--black);
+            font-weight: 600;
+            background-color: transparent;
+        }
+        
+        .tab-name-edit-input {
+            font-family: inherit;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            outline: none;
+            background-color: transparent;
+            padding: 0.75rem 1rem;
+            max-width: 150px;
+        }
+
+        .tab-delete-button {
+            padding: 0 0.5rem;
+            color: var(--gray-400);
+            opacity: 0;
+            transition: all 200ms;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: normal;
+        }
+
+        .tab-wrapper:hover .tab-delete-button, .tab-button.active .tab-delete-button {
+            opacity: 1;
+        }
+
+        .tab-delete-button:hover {
+            background-color: transparent;
+            color: var(--black);
+        }
+        
+        .tab-delete-button.confirm-delete {
+            color: var(--green-confirm);
+            font-weight: bold;
+            opacity: 1;
+        }
+        
+        #add-tab-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-400);
+            transition: all 200ms;
+            cursor: pointer;
+            border: none;
+            background: none;
+            flex-shrink: 0;
+            font-size: 1.25rem;
+            font-weight: bold;
+            padding: 0.75rem;
+        }
+        
+        #add-tab-button:hover {
+            background-color: transparent;
+            color: var(--black);
+        }
+
+        /* Rotating Phrase */
+        #phrase-container-wrapper {
+            padding: 0.5rem 2rem 0 2rem;
+            display: flex;
+            justify-content: flex-end;
+        }
+        #rotating-phrase {
+            color: var(--gray-500);
+            font-size: 1rem;
+            text-align: right;
+            min-height: 1.5rem;
+            margin: 0;
+        }
+
+        /* Main Content Area */
+        main {
+            background-color: var(--bg-color);
+            padding: 2rem 0 4rem 0;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+        .empty-state h2 {
+            font-size: 1.5rem;
+            font-weight: 400;
+            color: var(--gray-500);
+            margin: 0;
+        }
+        .empty-state p {
+            color: var(--gray-400);
+            margin-top: 0.5rem;
+        }
+
+        /* Todo List Header */
+        .todo-list-header h2 {
+            font-size: 3rem;
+            line-height: 1.1;
+            font-weight: 600;
+            margin: 0 0 2rem 0;
+            word-break: break-word;
+            min-height: 3.3rem; /* Prevent layout shift during typing */
+        }
+        
+        .todo-list-header-edit-input {
+            font-family: inherit;
+            font-size: 3rem;
+            line-height: 1.1;
+            font-weight: 600;
+            margin: 0 0 2rem 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            outline: none;
+            width: 100%;
+            border-bottom: 2px solid var(--black);
+        }
+
+        /* Todo List Body */
+        .todo-list-empty-state {
+            text-align: left;
+            padding: 0;
+            color: var(--gray-400);
+            font-style: normal;
+            border: none;
+            margin: 1rem 0;
+        }
+
+        #todo-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .todo-item-wrapper {
+            transition: margin-top 0.3s ease-out, margin-bottom 0.3s ease-out, box-shadow 0.2s ease-out, transform 0.2s ease-out;
+        }
+
+        /* Drag and Drop Styles */
+        .todo-item-wrapper.dragging {
+            opacity: 0.95;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.1);
+            transform: scale(1.01);
+            background-color: var(--bg-color);
+            z-index: 100;
+        }
+        .todo-item-wrapper.drag-over-top {
+            margin-top: 50px;
+        }
+        .todo-item-wrapper.drag-over-bottom {
+            margin-bottom: 50px;
+        }
+        
+        .todo-item-wrapper.new-item-animation {
+            animation: fadeInSlideUp 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        @keyframes fadeInSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 0.25rem 0;
+        }
+
+        .drag-handle {
+            display: flex;
+            align-items: center;
+            padding-right: 0.5rem;
+            cursor: grab;
+            opacity: 0;
+            transition: opacity 0.2s;
+            touch-action: none;
+        }
+        .todo-item-wrapper:hover .drag-handle {
+            opacity: 1;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        .drag-handle svg {
+            width: 1rem;
+            height: 1rem;
+            fill: var(--gray-400);
+        }
+        
+        .todo-text-container {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            flex-grow: 1;
+        }
+        
+        .todo-prefix {
+            color: var(--golden-yellow);
+            padding-right: 0.25rem;
+        }
+
+        .todo-text-container label {
+            cursor: pointer;
+            color: var(--text-color);
+            transition: color 0.2s;
+            font-size: 1rem;
+        }
+        .todo-item-wrapper.completed .todo-text-container label {
+            text-decoration: line-through;
+            color: var(--gray-500);
+        }
+
+        .todo-text-edit-input {
+            flex-grow: 1;
+            font-family: inherit;
+            font-size: 1rem;
+            border: none;
+            background: transparent;
+            border-bottom: 1px solid var(--black);
+            outline: none;
+            padding: 0.1rem 0;
+        }
+
+        .todo-delete-button {
+            color: var(--gray-500);
+            font-family: inherit;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 0.5rem;
+            font-size: 1rem;
+            line-height: 1;
+            opacity: 0;
+            transition: opacity 0.2s, color 0.2s;
+        }
+        .todo-delete-button:hover {
+            color: var(--black);
+        }
+
+        .todo-item-wrapper:hover .todo-delete-button {
+            opacity: 1;
+        }
+        
+        .todo-delete-button.confirm-delete {
+            color: var(--green-confirm);
+            font-weight: bold;
+            opacity: 1;
+        }
+
+        /* New Todo Button */
+        #add-todo-container {
+            margin-top: 1rem;
+        }
+        #add-todo-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--gray-500);
+            transition: color 0.2s, background-color 0.2s;
+            font-size: 1rem;
+        }
+        #add-todo-button:hover {
+            color: var(--black);
+            background-color: transparent;
+        }
+
+        /* Typing Effect */
+        .typing-cursor {
+            display: inline-block;
+            width: 0.15em;
+            height: 1.2em;
+            background-color: var(--golden-yellow);
+            margin-left: 0.2em;
+            vertical-align: bottom;
+            animation: blink 1s step-end infinite;
+        }
+        
+        .typing-cursor.no-blink {
+            animation: none;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="folder-selection-overlay">
+        <div id="folder-selection-box">
+             <h1 id="folder-selection-title">
+                <span class="golden-char"></span><span class="title-text-wrapper"> hate tasks</span>
+             </h1>
+             <p>To get started, please select a folder where your lists will be saved.</p>
+             <button id="select-folder-button">Select Folder</button>
+        </div>
+    </div>
+
+    <div id="launch-overlay">
+        <h1 id="launch-app-title">
+            <span class="golden-char"></span>
+            <span class="title-text-wrapper"></span>
+        </h1>
+        <div id="launch-box">
+            <h2 id="launch-phrase"></h2>
+            <button id="launch-button">Start</button>
+        </div>
+    </div>
+
+    <div id="app-wrapper">
+        <h1 id="app-title">
+             <span class="golden-char"></span>
+             <span class="title-text-wrapper"></span>
+        </h1>
+        <header id="tab-bar-container">
+            <button id="scroll-left-button" class="tab-scroll-button" aria-label="Scroll lists left">&lt;</button>
+            <div id="tabs-viewport">
+                <div id="tabs-scroll-container">
+                    <nav id="tabs-nav"></nav>
+                    <button id="add-tab-button" aria-label="Add new list">+</button>
+                </div>
+                <div id="tab-progress-container">
+                    <div id="tab-progress-bar"></div>
+                </div>
+            </div>
+            <button id="scroll-right-button" class="tab-scroll-button" aria-label="Scroll lists right">&gt;</button>
+        </header>
+
+        <div id="phrase-container-wrapper">
+            <p id="rotating-phrase"></p>
+        </div>
+
+        <div id="app-container">
+            <main id="main-content"></main>
+        </div>
+    </div>
+
+    <script type="module">
+        import { get, set } from 'https://cdn.jsdelivr.net/npm/idb-keyval@6/+esm';
+
+        const ROTATING_PHRASES = [
+            "I'm not procrastinating; I'm conducting a thorough cost-benefit analysis of doing this task versus doing nothing.",
+            "My to-do list is just a list of suggestions that I'll be taking under advisement.",
+            "I've identified my least favorite task and have begun to shun it emotionally.",
+            "I'm 'circling back' to this task by walking in a wide circle around it.",
+            "My official position on any task assigned after 3 PM is \"that's a problem for tomorrow's me.\"",
+            "I’ve created a very detailed spreadsheet to track the exact tasks I’m ignoring.",
+            "This task isn't 'due'; it's more of a 'vague threat on the horizon.'",
+            "I'll get right on that after I finish this very important audit of the office snack drawer.",
+            "I'm not avoiding work; I'm fostering a more mysterious and unpredictable workflow.",
+            "My motivation for this project is currently on an indefinite coffee break.",
+            "This task has been sitting on my desk for so long, I'm starting to consider it a coworker.",
+            "I've achieved a state of 'inbox zero' by archiving everything. It's like email bankruptcy.",
+            "Any task that can be solved by scheduling another meeting is a task I'm not interested in.",
+            "I’m not saying I'm going to ignore this email, but it has been moved to a folder named \"Maybe Later.\"",
+            "My productivity peaks during the five minutes before I leave for the day.",
+            "I'm not lazy; I'm just in a deeply committed relationship with doing the bare minimum.",
+            "I've given this task a performance review. It did not go well.",
+            "This seems like a task for the person I pretend to be on my resume.",
+            "I'm not putting it off; I'm just letting the deadline get a little more motivated.",
+            "I’ve started responding to urgent emails with \"Noted.\" It creates a nice sense of ambiguity.",
+            "My to-do list has become a decorative object to signal productivity I don't possess.",
+            "I'm not disorganized; I'm just using a more \"organic\" filing system. It's called a pile.",
+            "I'm waiting for this task to resolve itself. I'm optimistic.",
+            "My motivation is hibernating for the winter; please resubmit all tasks in the spring.",
+            "This \"quick question\" is starting to feel like a long-term commitment I'm not ready for.",
+            "I'm not avoiding the problem; I'm empowering it to find its own solution.",
+            "The hardest part of my job is looking busy while I think about what to do next.",
+            "I’ve decided this task isn't aligned with my brand's core values.",
+            "My to-do list and I are in a disagreement, so we are not speaking today.",
+            "I'll do that as soon as I'm done calculating the exact monetary value of my wasted time.",
+            "I'm not procrastinating; I'm just running a system-wide diagnostic on my willpower.",
+            "This task has the same soul-crushing energy as a mandatory staff party.",
+            "I'm not ignoring the deadline; I'm just giving it a chance to be more flexible.",
+            "I've categorized my tasks into 'Annoying,' 'Deeply Annoying,' and 'Return to Sender.'",
+            "It's 10 PM. My brain has officially clocked out, and this to-do list is now trespassing.",
+            "I'm not lazy; I'm just allergic to inefficient processes.",
+            "I’ve replied to the email with \"Let's table this,\" which is corporate for \"let's never speak of this again.\"",
+            "My only goal today is to look vaguely concerned when someone asks me about this project.",
+            "This task is not a priority; it's a hostage situation.",
+            "I'm not disorganized; I'm just not participating in the rigid, oppressive system of 'knowing where things are.'",
+            "I'm currently delegating this task to the universe.",
+            "My to-do list is just a wishlist I send to a less-tired version of myself.",
+            "I'm not avoiding this; I'm just waiting for a moment of divine inspiration, which could take a while.",
+            "I've decided to let this problem solve itself through natural selection.",
+            "I’m not procrastinating; I’m in a strategic pause.",
+            "This task feels like a meeting that should have been an email that should have been a thought that no one ever had.",
+            "I'm not putting it off; I'm just letting it mature.",
+            "It’s Wednesday, and my only remaining task is to complain that it’s only Wednesday.",
+            "I'm not ignoring my responsibilities; I'm just socially distancing from them.",
+            "My professional goal is to one day be as unbothered as the printer when it's out of paper.",
+            "Does a task even exist if it's on the second page of your to-do list?",
+            "This project has now reached the \"stare at it and hope it catches fire\" stage.",
+            "Ignoring this task has become my primary, most time-consuming task.",
+            "My official response to any new assignment tonight is an audible, weary sigh.",
+            "This email chain feels less like a conversation and more like a multi-car pile-up of words.",
+            "What if we just collectively agreed that this spreadsheet was a bad dream?",
+            "My to-do list. A masterclass in pointless bureaucracy.",
+            "Note to self: \"Due tomorrow\" is a challenge, not a fact.",
+            "I just looked at my calendar for Thursday and now I need to lie down for a bit.",
+            "Procrastination: the art of convincing yourself you work better under the pressure you single-handedly created.",
+            "My keyboard is judging me for the sheer number of times I've typed \"Just following up.\"",
+            "Before I tackle this report, a brief moment of silent screaming seems appropriate.",
+            "Is it still \"working from home\" if I haven't done any actual work?",
+            "My willpower has officially entered its winter hibernation period.",
+            "This task has the same appeal as a surprise audit.",
+            "\"I'll just check one email,\" I thought, emerging two hours later with no memory of the sun.",
+            "The sheer audacity of this task to exist on a Wednesday night.",
+            "I'm not avoiding my responsibilities; I'm letting them age to perfection.",
+            "What's the corporate jargon for giving up completely? I'm \"optimizing my disengagement.\"",
+            "This task. A monument to poor planning.",
+            "Memo to all my tasks: I have resigned, effective immediately.",
+            "My inbox is a bottomless pit with a Wi-Fi connection.",
+            "I’ve decided to file this task under \"Reasons This Week Is Taking Forever.\"",
+            "This project is starting to feel like a group project where I'm the only one who showed up.",
+            "Let's be honest, my to-do list is just a decorative piece of paper at this point.",
+            "Has anyone tried turning a deadline off and on again?",
+            "My motivation is currently experiencing technical difficulties. Please stand by.",
+            "This spreadsheet is a vampire, and it is draining my life force.",
+            "Who decided that tasks should exist? I'd like to speak to their manager.",
+            "My only remaining task is to calculate the precise moment my soul left my body today.",
+            "I'm treating this deadline like a speed limit: a suggestion I'll probably ignore.",
+            "The only thing I'm \"on top of\" is the pile of things I should have done last week.",
+            "I’m not saying no to this task, but I am saying \"good luck.\"",
+            "My brain's search history for motivation has returned zero results.",
+            "To even begin this report would require a level of inner peace I do not currently possess.",
+            "I just saw an email marked \"urgent,\" so I'm going to go make a sandwich.",
+            "Why do a task today when you can put it off until it becomes a full-blown crisis?",
+            "The most productive thing I've done all day is switch from my work chair to my slightly more comfortable chair.",
+            "I've sent this task to a committee for review. The committee is me, and I've tabled it indefinitely.",
+            "My to-do list is mocking me in a font I specifically chose.",
+            "Is it possible to get carpal tunnel from sighing too much at a spreadsheet?",
+            "I'm not ignoring the problem; I'm observing it in its natural habitat.",
+            "My workflow has been downgraded from a \"flow\" to more of a \"persistent drip.\"",
+            "This task has been on my list so long, it’s a treasured family heirloom of my failures.",
+            "It's too late for work and too early to give up on life, so here I am, staring at this document.",
+            "The only \"deliverable\" I'm focused on right now is delivering myself to my bed.",
+            "My computer screen is just a well-lit portal to a world of things I don't want to do.",
+            "Let's call this task what it is: a reason to have another coffee.",
+            "My professional superpower is looking intensely focused while thinking about absolutely nothing.",
+            "I believe this task will be solved by the magic of tomorrow morning.",
+            "Is there a way to put my to-do list on \"do not disturb\"?",
+            "This project is now a ghost, haunting my every waking thought.",
+            "My only strategy for this task is avoidance, and so far, it's working perfectly.",
+            "I've developed a sudden, urgent need to organize my spice rack, which is a classic symptom of task-avoidance.",
+            "This email doesn't need a reply; it needs an exorcism.",
+            "My brain has officially vetoed any new requests for the remainder of the business day.",
+            "I'm not putting this off; I'm giving other, less important tasks a chance to shine.",
+            "I'm pretty sure this task is just a social experiment to test my sanity.",
+            "If I stare at this to-do list long enough, maybe it will get intimidated and do itself.",
+            "It’s Wednesday night. My spirit has already clocked out for the weekend.",
+            "I’ve decided to treat my tasks like houseguests: if I ignore them long enough, they'll eventually leave.",
+            "The fact that I have to do this task is, frankly, a failure of management.",
+            "My current level of motivation is somewhere below \"lukewarm tap water.\"",
+            "I'm not saying I'm giving up, but I am exploring my options for surrender.",
+            "This task has all the appeal of assembling flat-pack furniture with the wrong instructions.",
+            "My to-do list is written in a language I no longer speak: \"Optimism.\"",
+            "I'll get to that right after I finish this very important deep dive into the history of paperclips.",
+            "I'm not procrastinating; this is a silent protest.",
+            "Let’s not call it a \"messy desk.\" Let's call it a \"paper-based ecosystem.\"",
+            "My plan is to let this deadline sneak up on me, so I have the element of surprise.",
+            "I've sent the task an out-of-office reply, even though I'm sitting right here.",
+            "I'm not avoiding work; I'm conserving my energy for a more critical moment, like finding the remote.",
+            "The only thing I'm moving \"forward\" is the due date on this project.",
+            "This task is a problem that I am confident will not be solved by me.",
+            "I've looked at this problem from every angle, and they're all bad.",
+            "My to-do list is just my brain's way of bullying me.",
+            "I'm currently in a passionate, committed relationship with the \"remind me tomorrow\" button.",
+            "I’ve started a new filing system. It’s just a bigger pile.",
+            "My computer is frozen, and honestly, I feel a deep sense of kinship with it.",
+            "I'm not putting it off; I'm waiting for technology to advance to the point where this task is obsolete.",
+            "My brain's blue screen of death was triggered by this specific email.",
+            "It's late. This task isn't happening unless it can be done from a horizontal position.",
+            "This to-do list is a relic from a more hopeful time (this morning).",
+            "I'm not avoiding this task; I just don't have the emotional bandwidth for it.",
+            "The only thing I'm prepared to \"tackle\" right now is a bag of chips.",
+            "I'm not ignoring my responsibilities; I'm just not on speaking terms with them.",
+            "This meeting request feels like an invitation to a party I would actively pay to avoid.",
+            "I'm not procrastinating; I'm engaging in creative problem-solving by seeing if the problem goes away on its own.",
+            "My to-do list just whispered, \"I know what you didn't do last summer.\"",
+            "I’m not disorganized; I’m just providing my belongings with a sense of freedom.",
+            "This task requires the kind of mental energy I only have during the first three minutes of my day.",
+            "I've decided to let my tasks fight each other. The winner gets to be ignored tomorrow.",
+            "My only \"workflow\" is a steady stream of coffee and regret.",
+            "I'm not avoiding this; I'm simply respecting the fact that it doesn't want to be done.",
+            "This deadline is less of a line and more of a fuzzy, abstract suggestion.",
+            "I'm currently at inbox Zen, which is the state of having so many emails that you feel nothing.",
+            "My to-do list and my desire to be horizontal are in a fight to the death.",
+            "This task is the vegetable of my workday: I know it's good for me, but I'd rather have dessert.",
+            "I'm not putting it off; I'm letting my subconscious handle it in a dream.",
+            "My official status on this project is \"spiritually checked out.\"",
+            "I'm not just procrastinating; I'm a connoisseur of the art form.",
+            "My to-do list is a perfect storm of my own making.",
+            "I'm not avoiding this task; I'm just giving it a chance to become a historical artifact.",
+            "This spreadsheet is not just a document; it's a punishment.",
+            "I'm not disorganized; I'm just not a fan of arbitrary systems of order.",
+            "My motivation has been furloughed until further notice.",
+            "This task is like a ghost that haunts my every waking moment, and some of my dreams.",
+            "I'm not avoiding work; I'm just not in the mood to be a functional member of society.",
+            "My to-do list is a collection of my worst ideas, all in one convenient place.",
+            "I'm not lazy; I'm just in a committed relationship with the path of least resistance.",
+            "This task is not a priority; it's a threat to my well-being.",
+            "I'm not procrastinating; I'm just letting my tasks experience the thrill of the chase.",
+            "My to-do list is a list of things I would do if I had a personal army.",
+            "I'm not disorganized; I'm just not a fan of the Dewey Decimal System.",
+            "My motivation is like a rare, endangered species: hard to find and probably about to die.",
+            "This task is not just a task; it's a test of my will to live.",
+            "I'm not avoiding work; I'm just giving it a chance to become a classic.",
+            "My to-do list is a list of things I would do if I were a different person.",
+            "I'm not lazy; I'm just not a fan of the Protestant work ethic.",
+            "This task is not a priority; it's a violation of my human rights.",
+            "I'm not procrastinating; I'm just letting my tasks build suspense.",
+            "My to-do list is a list of things I would do if I had magical powers.",
+            "I'm not disorganized; I'm just not a fan of filing cabinets.",
+            "My motivation is like a shy cat: if I approach it too quickly, it will run away.",
+            "This task is not just a task; it's a black hole that sucks the joy out of my life.",
+            "I'm not avoiding work; I'm just giving it a chance to become a legend.",
+            "My to-do list is a list of things I would do if I had a time machine.",
+            "I'm not lazy; I'm just not a fan of the concept of \"work.\"",
+            "This task is not a priority; it's a clear and present danger to my happiness.",
+            "I'm not procrastinating; I'm just letting my tasks become a part of the zeitgeist.",
+            "My to-do list is a list of things I would do if I had a clone.",
+            "I'm not disorganized; I'm just not a fan of the alphabet.",
+            "My motivation is like a fickle god: it demands sacrifices and rarely delivers.",
+            "This task is not just a task; it's a soul-crushing exercise in futility.",
+            "I'm not avoiding work; I'm just giving it a chance to become a cautionary tale.",
+            "My to-do list is a list of things I would do if I had an army of minions.",
+            "I'm not lazy; I'm just not a fan of the concept of \"doing things.\"",
+            "This task is not a priority; it's a direct threat to my sanity.",
+            "I'm not procrastinating; I'm just letting my tasks become a part of the collective unconscious.",
+            "My to-do list is a list of things I would do if I had a magic wand.",
+            "I'm not disorganized; I'm just not a fan of the concept of \"organization.\"",
+            "My motivation is like a cheap flashlight: it works for a few minutes and then dies.",
+            "This task is not just a task; it's a slow and painful death by a thousand paper cuts.",
+            "I'm not avoiding work; I'm just giving it a chance to become a myth.",
+            "My to-do list is a list of things I would do if I had a genie.",
+            "I'm not lazy; I'm just not a fan of the concept of \"productivity.\"",
+            "This task is not a priority; it's a clear violation of the Geneva Convention.",
+            "I'm not procrastinating; I'm just letting my tasks become a part of the cultural landscape.",
+            "My to-do list is a list of things I would do if I had a personal assistant.",
+            "I'm not disorganized; I'm just not a fan of the concept of \"order.\""
+        ];
+        
+        let rootDirectoryHandle = null;
+
+        const App = {
+            // --- STATE & DOM ---
+            state: {
+                tabs: [],
+                activeTabId: null,
+                editingTabId: null,
+                editingListTitleId: null,
+                editingTodoId: null,
+                editingTodoOriginalText: '',
+                lastAnimatedTitleTabId: null,
+                titleAnimationTimeout: null,
+                rotatingPhraseTimeout: null,
+                rotatingPhraseAnimationId: 0,
+                draggedTodoId: null,
+                confirmingDeleteTabId: null,
+                confirmingDeleteTodoId: null,
+                confirmationTimeout: null,
+            },
+            dom: {},
+
+            // --- INITIALIZATION ---
+            init() {
+                this.cacheDom();
+                this.bindEvents();
+                this.initializeAppFlow();
+            },
+
+            cacheDom() {
+                this.dom = {
+                    folderSelectionOverlay: document.getElementById('folder-selection-overlay'),
+                    selectFolderButton: document.getElementById('select-folder-button'),
+                    launchOverlay: document.getElementById('launch-overlay'),
+                    launchPhrase: document.getElementById('launch-phrase'),
+                    launchButton: document.getElementById('launch-button'),
+                    appWrapper: document.getElementById('app-wrapper'),
+                    tabsNav: document.getElementById('tabs-nav'),
+                    addTabButton: document.getElementById('add-tab-button'),
+                    mainContent: document.getElementById('main-content'),
+                    scrollLeftButton: document.getElementById('scroll-left-button'),
+                    scrollRightButton: document.getElementById('scroll-right-button'),
+                    tabsViewport: document.getElementById('tabs-viewport'),
+                    tabsScrollContainer: document.getElementById('tabs-scroll-container'),
+                    tabProgressContainer: document.getElementById('tab-progress-container'),
+                    tabProgressBar: document.getElementById('tab-progress-bar'),
+                    rotatingPhrase: document.getElementById('rotating-phrase'),
+                };
+            },
+
+            bindEvents() {
+                this.dom.selectFolderButton.addEventListener('click', () => this.handleFolderSelection());
+                this.dom.launchButton.addEventListener('click', () => this.handleStart());
+                this.dom.addTabButton.addEventListener('click', () => this.addNewTab());
+                this.dom.scrollLeftButton.addEventListener('click', () => this.scrollTabs(-1));
+                this.dom.scrollRightButton.addEventListener('click', () => this.scrollTabs(1));
+                this.dom.tabsScrollContainer.addEventListener('scroll', () => this.updateTabScrollUI());
+                window.addEventListener('resize', () => this.updateTabScrollUI());
+            },
+            
+            async verifyPermission(handle) {
+                const options = { mode: 'readwrite' };
+                // Check if permission is already granted
+                if ((await handle.queryPermission(options)) === 'granted') {
+                    return true;
+                }
+                // Request permission. It will automatically prompt the user if the state is 'prompt'.
+                if ((await handle.requestPermission(options)) === 'granted') {
+                    return true;
+                }
+                // The user denied permission, or the permission state is 'denied'.
+                return false;
+            },
+
+            async initializeAppFlow() {
+                try {
+                    const storedHandle = await get('rootDirectoryHandle');
+                    if (storedHandle && (await this.verifyPermission(storedHandle))) {
+                        rootDirectoryHandle = storedHandle;
+                        this.showLaunchScreen();
+                    } else {
+                        this.dom.folderSelectionOverlay.style.display = 'flex';
+                    }
+                } catch (error) {
+                    console.error("Error initializing app flow:", error);
+                    this.dom.folderSelectionOverlay.style.display = 'flex';
+                }
+            },
+            
+            async handleFolderSelection() {
+                const handle = await this.selectFolderAndGetHandle();
+                if (handle) {
+                    rootDirectoryHandle = handle;
+                    this.dom.folderSelectionOverlay.style.display = 'none';
+                    this.showLaunchScreen();
+                }
+            },
+
+            async showLaunchScreen() {
+                this.dom.launchOverlay.style.display = 'flex';
+                this.dom.launchButton.disabled = true;
+
+                const launchTitleText = document.querySelector('#launch-app-title .title-text-wrapper');
+                const launchTitleCursor = document.querySelector('#launch-app-title .golden-char');
+                launchTitleText.textContent = '';
+                launchTitleCursor.classList.add('typing-cursor');
+                launchTitleCursor.classList.remove('no-blink');
+
+                await this.animateLaunchPhrase();
+                
+                await this.animateTitleText(launchTitleText, ' hate tasks', launchTitleCursor);
+
+                this.dom.launchButton.disabled = false;
+            },
+
+            async handleStart() {
+                this.dom.launchButton.disabled = true;
+                if (rootDirectoryHandle) {
+                    await this.animateTitleTransition();
+                    this.launchApp();
+                } else {
+                    this.dom.launchButton.disabled = false;
+                }
+            },
+
+            async selectFolderAndGetHandle() {
+                 try {
+                    const handle = await window.showDirectoryPicker();
+                    await set('rootDirectoryHandle', handle);
+                    return handle;
+                } catch (err) {
+                    console.error('User cancelled directory picker or an error occurred.', err);
+                    return null;
+                }
+            },
+            
+            async launchApp() {
+                this.dom.appWrapper.style.display = 'block';
+
+                const mainTitleText = document.querySelector('#app-title .title-text-wrapper');
+                const mainTitleCursor = document.querySelector('#app-title .golden-char');
+                mainTitleText.textContent = '';
+                mainTitleCursor.classList.add('typing-cursor');
+                mainTitleCursor.classList.remove('no-blink');
+                
+                await new Promise(res => setTimeout(res, 500)); 
+                
+                await this.animateTitleText(mainTitleText, ' hate tasks', mainTitleCursor);
+                await this.loadState();
+                this.startRotatingPhrasesAnimation();
+            },
+            
+            // --- ANIMATIONS ---
+            animateLaunchPhrase() {
+                 return new Promise(resolve => {
+                    const phrase = ROTATING_PHRASES[Math.floor(Math.random() * ROTATING_PHRASES.length)];
+                    const element = this.dom.launchPhrase;
+                    let charIndex = 0;
+                    element.innerHTML = `<span class="typing-cursor"></span>`;
+
+                    const type = () => {
+                        if (charIndex < phrase.length) {
+                            const currentText = this.escapeHtml(phrase.substring(0, charIndex + 1));
+                            element.innerHTML = `${currentText}<span class="typing-cursor"></span>`;
+                            charIndex++;
+                            setTimeout(type, 50);
+                        } else {
+                            element.innerHTML = this.escapeHtml(phrase);
+                            resolve();
+                        }
+                    };
+                    setTimeout(type, 50);
+                });
+            },
+            
+            animateTitleText(textWrapperEl, text, cursorEl) {
+                return new Promise(resolve => {
+                    let charIndex = 0;
+                    textWrapperEl.textContent = '';
+                    cursorEl.classList.remove('typing-cursor');
+                    cursorEl.classList.add('no-blink');
+
+                    function type() {
+                        if (charIndex < text.length) {
+                            textWrapperEl.textContent += text[charIndex];
+                            charIndex++;
+                            setTimeout(type, 100);
+                        } else {
+                           cursorEl.classList.remove('no-blink');
+                           cursorEl.classList.add('typing-cursor');
+                           resolve();
+                        }
+                    }
+                    type();
+                });
+            },
+
+            animateTitleTransition() {
+                return new Promise(resolve => {
+                    this.dom.appWrapper.style.visibility = 'hidden';
+                    this.dom.appWrapper.style.display = 'block';
+                    
+                    const launchCursor = document.querySelector('#launch-app-title .golden-char');
+                    const mainCursor = document.querySelector('#app-title .golden-char');
+                    const launchRect = launchCursor.getBoundingClientRect();
+                    const mainRect = mainCursor.getBoundingClientRect();
+                    
+                    this.dom.appWrapper.style.display = 'none';
+                    this.dom.appWrapper.style.visibility = 'visible';
+
+                    const transitionCursor = document.createElement('div');
+                    transitionCursor.id = 'transition-cursor';
+                    document.body.appendChild(transitionCursor);
+
+                    transitionCursor.style.left = `${launchRect.left}px`;
+                    transitionCursor.style.top = `${launchRect.top}px`;
+                    transitionCursor.style.width = `${launchRect.width}px`;
+                    transitionCursor.style.height = `${launchRect.height}px`;
+
+                    launchCursor.style.opacity = '0';
+                    document.querySelector('#launch-app-title .title-text-wrapper').style.opacity = '0';
+                    this.dom.launchPhrase.style.opacity = '0';
+                    this.dom.launchButton.style.opacity = '0';
+
+                    setTimeout(() => {
+                        const expandedWidth = launchRect.right - mainRect.left;
+                        transitionCursor.style.left = `${mainRect.left}px`;
+                        transitionCursor.style.width = `${expandedWidth}px`;
+
+                        const onExpandEnd = (e) => {
+                            if (e.propertyName !== 'width') return;
+                            transitionCursor.removeEventListener('transitionend', onExpandEnd);
+
+                            transitionCursor.style.transition = 'width 0.3s ease-out';
+                            transitionCursor.style.width = `${mainRect.width}px`;
+                            
+                            const onShrinkEnd = (e) => {
+                                if (e.propertyName !== 'width') return;
+                                transitionCursor.removeEventListener('transitionend', onShrinkEnd);
+
+                                document.body.removeChild(transitionCursor);
+                                this.dom.launchOverlay.style.opacity = '0';
+
+                                this.dom.launchOverlay.addEventListener('transitionend', () => {
+                                     this.dom.launchOverlay.style.display = 'none';
+                                     resolve();
+                                }, { once: true });
+                            };
+                            transitionCursor.addEventListener('transitionend', onShrinkEnd);
+                        };
+                        transitionCursor.addEventListener('transitionend', onExpandEnd);
+                    }, 50);
+                });
+            },
+            
+            startRotatingPhrasesAnimation() {
+                const el = this.dom.rotatingPhrase;
+                if (!el) return;
+            
+                if (this.state.rotatingPhraseTimeout) {
+                    clearTimeout(this.state.rotatingPhraseTimeout);
+                }
+                this.state.rotatingPhraseAnimationId++;
+                const currentAnimationId = this.state.rotatingPhraseAnimationId;
+            
+                let phraseIndex = Math.floor(Math.random() * ROTATING_PHRASES.length);
+            
+                const typeAndDelete = async () => {
+                    if (currentAnimationId !== this.state.rotatingPhraseAnimationId) {
+                        return;
+                    }
+            
+                    const phrase = ROTATING_PHRASES[phraseIndex];
+                    
+                    for (let i = 0; i <= phrase.length; i++) {
+                        if (currentAnimationId !== this.state.rotatingPhraseAnimationId) return;
+                        const currentText = this.escapeHtml(phrase.substring(0, i));
+                        el.innerHTML = `${currentText}<span class="typing-cursor"></span>`;
+                        await new Promise(res => setTimeout(res, 60));
+                    }
+            
+                    if (currentAnimationId !== this.state.rotatingPhraseAnimationId) return;
+                    el.innerHTML = `${this.escapeHtml(phrase)}<span class="typing-cursor"></span>`;
+                    await new Promise(res => setTimeout(res, 4000));
+            
+                    for (let i = phrase.length; i >= 0; i--) {
+                        if (currentAnimationId !== this.state.rotatingPhraseAnimationId) return;
+                        const currentText = this.escapeHtml(phrase.substring(0, i));
+                        el.innerHTML = `${currentText}<span class="typing-cursor"></span>`;
+                        await new Promise(res => setTimeout(res, 30));
+                    }
+                    
+                    if (currentAnimationId !== this.state.rotatingPhraseAnimationId) return;
+                    el.innerHTML = `<span class="typing-cursor"></span>`;
+                    await new Promise(res => setTimeout(res, 500));
+                    
+                    phraseIndex = (phraseIndex + 1) % ROTATING_PHRASES.length;
+                    
+                    if (currentAnimationId === this.state.rotatingPhraseAnimationId) {
+                        this.state.rotatingPhraseTimeout = setTimeout(typeAndDelete, 0);
+                    }
+                };
+                
+                typeAndDelete();
+            },
+
+            // --- DATA MANAGEMENT (File System API) ---
+            async loadState() {
+                if (!rootDirectoryHandle) return;
+                
+                this.state.tabs = [];
+                for await (const entry of rootDirectoryHandle.values()) {
+                    if (entry.kind === 'directory') {
+                        const listName = entry.name;
+                        let todos = [];
+                        try {
+                            const fileHandle = await entry.getFileHandle('tasks.json');
+                            const file = await fileHandle.file();
+                            const contents = await file.text();
+                            todos = JSON.parse(contents);
+                        } catch (e) {
+                            // tasks.json doesn't exist or is invalid. Treat as an empty list.
+                            console.warn(`Could not load tasks for "${listName}":`, e.message);
+                        }
+                        this.state.tabs.push({ id: listName, name: listName, todos });
+                    }
+                }
+
+                if (!this.state.activeTabId || !this.state.tabs.some(t => t.id === this.state.activeTabId)) {
+                     this.state.activeTabId = this.state.tabs.length > 0 ? this.state.tabs[0].id : null;
+                }
+                this.render();
+            },
+
+            async saveActiveTabTodos() {
+                if (!rootDirectoryHandle) return;
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+
+                try {
+                    const listHandle = await rootDirectoryHandle.getDirectoryHandle(activeTab.id, { create: true });
+                    const fileHandle = await listHandle.getFileHandle('tasks.json', { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(JSON.stringify(activeTab.todos, null, 2));
+                    await writable.close();
+                } catch (e) {
+                    console.error("Failed to save tasks:", e);
+                }
+            },
+            
+            // --- TAB MANAGEMENT ---
+            setActiveTab(tabId) {
+                if (this.state.activeTabId === tabId) return;
+                this.clearConfirmationState();
+                this.state.activeTabId = tabId;
+                this.render();
+            },
+            
+            async addNewTab() {
+                if (!rootDirectoryHandle) return;
+                this.clearConfirmationState();
+                let newTabName = "New List";
+                let counter = 1;
+                const existingNames = this.state.tabs.map(t => t.name);
+
+                while(existingNames.includes(newTabName)) {
+                    newTabName = `New List ${counter++}`;
+                }
+
+                try {
+                    await rootDirectoryHandle.getDirectoryHandle(newTabName, { create: true });
+                    const newTab = { id: newTabName, name: newTabName, todos: [] };
+                    this.state.tabs.push(newTab);
+                    this.setActiveTab(newTab.id); // This will call render
+                    await this.saveActiveTabTodos(); // Save empty tasks.json
+                    this.scrollTabIntoView(newTab.id);
+                } catch(e) {
+                    console.error("Failed to create new list folder:", e);
+                }
+            },
+            
+            async renameList(oldName, newName) {
+                if (oldName === newName || !newName.trim() || !rootDirectoryHandle) {
+                    this.state.editingTabId = null;
+                    this.state.editingListTitleId = null;
+                    this.render();
+                    return;
+                }
+
+                const existingNames = this.state.tabs.map(t => t.name);
+                if (existingNames.includes(newName.trim())) {
+                    alert(`A list named "${newName.trim()}" already exists.`);
+                    this.state.editingTabId = null;
+                    this.state.editingListTitleId = null;
+                    this.render();
+                    return;
+                }
+
+                try {
+                    const newDirHandle = await rootDirectoryHandle.getDirectoryHandle(newName.trim(), { create: true });
+                    try {
+                        const oldDirHandle = await rootDirectoryHandle.getDirectoryHandle(oldName);
+                        const fileHandle = await oldDirHandle.getFileHandle('tasks.json');
+                        const file = await fileHandle.file();
+                        const content = await file.text();
+                        
+                        const newFileHandle = await newDirHandle.getFileHandle('tasks.json', { create: true });
+                        const writable = await newFileHandle.createWritable();
+                        await writable.write(content);
+                        await writable.close();
+                    } catch (e) { /* Old folder might be empty, that's fine */ }
+
+                    await rootDirectoryHandle.removeEntry(oldName, { recursive: true });
+
+                    const tabToRename = this.state.tabs.find(t => t.id === oldName);
+                    tabToRename.name = newName.trim();
+                    tabToRename.id = newName.trim();
+
+                    if (this.state.activeTabId === oldName) {
+                        this.state.activeTabId = newName.trim();
+                    }
+                } catch (e) {
+                    console.error("Failed to rename list:", e);
+                } finally {
+                    this.state.editingTabId = null;
+                    this.state.editingListTitleId = null;
+                    this.render();
+                }
+            },
+
+            startEditingListTitle(tabId) {
+                this.clearConfirmationState();
+                this.state.editingListTitleId = tabId;
+                this.renderMainContent();
+                const input = this.dom.mainContent.querySelector(`.todo-list-header-edit-input`);
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            },
+
+            startEditingTab(tabId) {
+                this.clearConfirmationState();
+                this.state.editingTabId = tabId;
+                this.renderTabs();
+                const input = this.dom.tabsNav.querySelector(`.tab-name-edit-input[data-tab-id="${tabId}"]`);
+                input.focus();
+                input.select();
+            },
+
+            async deleteTab(tabId) {
+                if (!rootDirectoryHandle) return;
+                this.clearConfirmationState();
+                
+                try {
+                    await rootDirectoryHandle.removeEntry(tabId, { recursive: true });
+
+                    const tabIndex = this.state.tabs.findIndex(t => t.id === tabId);
+                    if (tabIndex > -1) {
+                        this.state.tabs.splice(tabIndex, 1);
+                        if (this.state.activeTabId === tabId) {
+                            if (this.state.tabs.length > 0) {
+                                const newActiveIndex = Math.max(0, tabIndex - 1);
+                                this.state.activeTabId = this.state.tabs[newActiveIndex].id;
+                            } else {
+                                this.state.activeTabId = null;
+                            }
+                        }
+                        this.render();
+                    }
+                } catch(e) {
+                    console.error("Failed to delete list folder:", e);
+                }
+            },
+
+            // --- TODO MANAGEMENT ---
+            addTodo() {
+                this.clearConfirmationState();
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+
+                const newTodo = {
+                    id: `todo_${Date.now()}`,
+                    text: "New Task",
+                    completed: false
+                };
+                activeTab.todos.push(newTodo);
+                
+                this.renderTodoList();
+                const newItemWrapper = document.querySelector(`.todo-item-wrapper[data-todo-id="${newTodo.id}"]`);
+                if (newItemWrapper) {
+                    newItemWrapper.classList.add('new-item-animation');
+                }
+                this.saveActiveTabTodos();
+            },
+
+            startEditingTodo(todoId) {
+                this.clearConfirmationState();
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+                const todo = activeTab.todos.find(t => t.id === todoId);
+                if (todo) {
+                    this.state.editingTodoId = todoId;
+                    this.state.editingTodoOriginalText = todo.text;
+                    this.renderTodoList();
+                    const input = document.querySelector(`.todo-text-edit-input[data-todo-id="${todoId}"]`);
+                    if (input) {
+                        input.focus();
+                        input.select();
+                    }
+                }
+            },
+
+            finishEditingTodo(todoId, newText, isBlur = false) {
+                if (this.state.editingTodoId !== todoId) return;
+
+                const activeTab = this.getActiveTab();
+                const todo = activeTab.todos.find(t => t.id === todoId);
+
+                if (isBlur && !newText.trim()) {
+                    if (this.state.editingTodoOriginalText === "New Task") { 
+                        this.deleteTodo(todoId); // This already saves
+                        return;
+                    } else {
+                        todo.text = this.state.editingTodoOriginalText; 
+                    }
+                } else if (newText.trim()) {
+                    todo.text = newText.trim();
+                }
+
+                this.state.editingTodoId = null;
+                this.state.editingTodoOriginalText = '';
+                this.renderTodoList();
+                this.saveActiveTabTodos();
+            },
+
+            deleteTodo(todoId) {
+                this.clearConfirmationState();
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+                activeTab.todos = activeTab.todos.filter(t => t.id !== todoId);
+                this.renderTodoList();
+                this.saveActiveTabTodos();
+            },
+
+            toggleTodo(todoId) {
+                this.clearConfirmationState();
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+                const todo = activeTab.todos.find(t => t.id === todoId);
+                if (todo) {
+                    todo.completed = !todo.completed;
+                    this.renderTodoList();
+                    this.saveActiveTabTodos();
+                }
+            },
+
+            reorderTodo(draggedId, targetId, dropAbove) {
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+
+                const todos = activeTab.todos;
+                const draggedIndex = todos.findIndex(t => t.id === draggedId);
+                let targetIndex = todos.findIndex(t => t.id === targetId);
+
+                if (draggedIndex === -1 || targetIndex === -1) return;
+
+                const [draggedItem] = todos.splice(draggedIndex, 1);
+                targetIndex = todos.findIndex(t => t.id === targetId);
+
+                if (dropAbove) {
+                    todos.splice(targetIndex, 0, draggedItem);
+                } else {
+                    todos.splice(targetIndex + 1, 0, draggedItem);
+                }
+
+                this.renderTodoList();
+                this.saveActiveTabTodos();
+            },
+
+            // --- RENDERING ---
+            render() {
+                this.renderTabs();
+                this.renderMainContent();
+            },
+
+            renderTabs() {
+                this.dom.tabsNav.innerHTML = '';
+                this.state.tabs.forEach(tab => {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'tab-wrapper';
+                    wrapper.dataset.tabId = tab.id;
+
+                    if (this.state.editingTabId === tab.id) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = tab.name;
+                        input.className = 'tab-name-edit-input';
+                        input.dataset.tabId = tab.id;
+                        input.onblur = (e) => this.renameList(tab.id, e.target.value);
+                        input.onkeydown = (e) => {
+                            if (e.key === 'Enter') e.target.blur();
+                            if (e.key === 'Escape') {
+                                this.state.editingTabId = null;
+                                this.renderTabs();
+                            }
+                        };
+                        wrapper.appendChild(input);
+                    } else {
+                        const button = document.createElement('button');
+                        button.className = `tab-button ${this.state.activeTabId === tab.id ? 'active' : ''}`;
+                        button.textContent = tab.name;
+                        button.onclick = () => this.setActiveTab(tab.id);
+                        button.ondblclick = () => this.startEditingTab(tab.id);
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'tab-delete-button';
+                        deleteBtn.ariaLabel = `Delete ${tab.name} list`;
+
+                        if (this.state.confirmingDeleteTabId === tab.id) {
+                            deleteBtn.textContent = 'y';
+                            deleteBtn.classList.add('confirm-delete');
+                            deleteBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                this.deleteTab(tab.id);
+                            };
+                        } else {
+                            deleteBtn.textContent = 'x';
+                            deleteBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                this.requestDeleteConfirmation('tab', tab.id);
+                            };
+                        }
+
+                        button.appendChild(deleteBtn);
+                        wrapper.appendChild(button);
+                    }
+                    this.dom.tabsNav.appendChild(wrapper);
+                });
+                
+                setTimeout(() => this.updateTabScrollUI(), 0);
+            },
+            
+            renderMainContent() {
+                const activeTab = this.getActiveTab();
+                if (!activeTab) {
+                    this.dom.mainContent.innerHTML = `
+                        <div class="empty-state">
+                            <h2>No lists yet</h2>
+                            <p>Click the '+' button to create your first to-do list.</p>
+                        </div>
+                    `;
+                    this.state.lastAnimatedTitleTabId = null;
+                    return;
+                }
+                this.dom.mainContent.innerHTML = `
+                    <div class="todo-list-container">
+                        <div class="todo-list-header">
+                        </div>
+                        <div class="todo-list-body">
+                            <ul id="todo-list"></ul>
+                            <div id="add-todo-container">
+                                <button id="add-todo-button" aria-label="Add a task">Add a task</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                const headerEl = this.dom.mainContent.querySelector('.todo-list-header');
+
+                if (this.state.editingListTitleId === activeTab.id) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.value = activeTab.name;
+                    input.className = 'todo-list-header-edit-input';
+                    input.onblur = (e) => this.renameList(activeTab.id, e.target.value);
+                    input.onkeydown = (e) => {
+                        if (e.key === 'Enter') e.target.blur();
+                        if (e.key === 'Escape') {
+                           this.state.editingListTitleId = null;
+                           this.renderMainContent();
+                        }
+                    };
+                    headerEl.appendChild(input);
+
+                } else {
+                    const titleEl = document.createElement('h2');
+                    titleEl.ondblclick = () => this.startEditingListTitle(activeTab.id);
+                    if (this.state.activeTabId !== this.state.lastAnimatedTitleTabId) {
+                        this.state.lastAnimatedTitleTabId = activeTab.id;
+                        this.animateListTitle(titleEl, activeTab.name);
+                    } else {
+                         if (this.state.titleAnimationTimeout) {
+                            clearTimeout(this.state.titleAnimationTimeout);
+                            this.state.titleAnimationTimeout = null;
+                        }
+                        titleEl.innerHTML = this.escapeHtml(activeTab.name);
+                    }
+                    headerEl.appendChild(titleEl);
+                }
+
+
+                this.renderTodoList();
+                document.getElementById('add-todo-button').addEventListener('click', () => this.addTodo());
+            },
+
+            renderTodoList() {
+                const listEl = document.getElementById('todo-list');
+                if (!listEl) return;
+
+                const activeTab = this.getActiveTab();
+                if (!activeTab) return;
+
+                if (activeTab.todos.length === 0) {
+                     listEl.innerHTML = `<li class="todo-list-empty-state">Your list is empty.</li>`;
+                     return;
+                }
+
+                listEl.innerHTML = '';
+                activeTab.todos.forEach(todo => {
+                    const wrapper = document.createElement('li');
+                    wrapper.className = 'todo-item-wrapper';
+                    if (todo.completed) {
+                        wrapper.classList.add('completed');
+                    }
+                    wrapper.dataset.todoId = todo.id;
+            
+                    wrapper.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        if (this.state.draggedTodoId === todo.id) return;
+                        
+                        document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+                            if (el !== wrapper) el.classList.remove('drag-over-top', 'drag-over-bottom');
+                        });
+
+                        const rect = wrapper.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        if (e.clientY < midY) {
+                            wrapper.classList.add('drag-over-top');
+                            wrapper.classList.remove('drag-over-bottom');
+                        } else {
+                            wrapper.classList.add('drag-over-bottom');
+                            wrapper.classList.remove('drag-top');
+                        }
+                    });
+            
+                    wrapper.addEventListener('dragleave', () => {
+                        wrapper.classList.remove('drag-over-top', 'drag-over-bottom');
+                    });
+            
+                    wrapper.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        if (!this.state.draggedTodoId || this.state.draggedTodoId === todo.id) return;
+                        const dropAbove = wrapper.classList.contains('drag-over-top');
+                        wrapper.classList.remove('drag-over-top', 'drag-over-bottom');
+                        this.reorderTodo(this.state.draggedTodoId, todo.id, dropAbove);
+                    });
+
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'todo-item';
+
+                    const dragHandle = document.createElement('span');
+                    dragHandle.className = 'drag-handle';
+                    dragHandle.setAttribute('aria-label', 'Drag to reorder task');
+                    dragHandle.draggable = true;
+                    dragHandle.innerHTML = `<svg viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M7 2a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 7 14zm6-12a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 2zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 8zm0 6a2 2 0 1 0 .001 4.001A2 2 0 0 0 13 14z"/></svg>`;
+
+                    dragHandle.addEventListener('dragstart', (e) => {
+                        e.stopPropagation();
+                        this.state.draggedTodoId = todo.id;
+                        e.dataTransfer.effectAllowed = 'move';
+                        setTimeout(() => wrapper.classList.add('dragging'), 0);
+                    });
+                    
+                    dragHandle.addEventListener('dragend', () => {
+                        wrapper.classList.remove('dragging');
+                        document.querySelectorAll('.drag-over-top, .drag-over-bottom').forEach(el => {
+                            el.classList.remove('drag-over-top', 'drag-over-bottom');
+                        });
+                        this.state.draggedTodoId = null;
+                    });
+                    
+                    itemDiv.appendChild(dragHandle);
+
+                    const textContainer = document.createElement('div');
+                    textContainer.className = 'todo-text-container';
+                    
+                    const prefix = document.createElement('span');
+                    prefix.className = 'todo-prefix';
+                    prefix.textContent = '/';
+                    prefix.ondblclick = () => this.startEditingTodo(todo.id);
+                    textContainer.appendChild(prefix);
+
+                    if (this.state.editingTodoId === todo.id) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.value = todo.text;
+                        input.className = 'todo-text-edit-input';
+                        input.dataset.todoId = todo.id;
+                        input.onblur = (e) => this.finishEditingTodo(todo.id, e.target.value, true);
+                        input.onkeydown = (e) => {
+                            if (e.key === 'Enter') e.target.blur();
+                            if (e.key === 'Escape') {
+                                this.state.editingTodoId = null;
+                                this.renderTodoList();
+                            }
+                        };
+                        textContainer.appendChild(input);
+                    } else {
+                        const label = document.createElement('label');
+                        label.textContent = todo.text;
+                        label.onclick = () => this.toggleTodo(todo.id);
+                        textContainer.appendChild(label);
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'todo-delete-button';
+                        deleteBtn.setAttribute('aria-label', `Delete task: ${todo.text}`);
+                        
+                        if (this.state.confirmingDeleteTodoId === todo.id) {
+                            deleteBtn.textContent = 'y';
+                            deleteBtn.classList.add('confirm-delete');
+                            deleteBtn.onclick = () => this.deleteTodo(todo.id);
+                        } else {
+                            deleteBtn.textContent = 'x';
+                            deleteBtn.onclick = () => this.requestDeleteConfirmation('todo', todo.id);
+                        }
+                        
+                        textContainer.appendChild(deleteBtn);
+                    }
+                    itemDiv.appendChild(textContainer);
+                    wrapper.appendChild(itemDiv);
+                    listEl.appendChild(wrapper);
+                });
+            },
+
+            // --- UI & UTILS ---
+            clearConfirmationState() {
+                if (this.state.confirmationTimeout) {
+                    clearTimeout(this.state.confirmationTimeout);
+                    this.state.confirmationTimeout = null;
+                }
+                this.state.confirmingDeleteTabId = null;
+                this.state.confirmingDeleteTodoId = null;
+            },
+
+            requestDeleteConfirmation(type, id) {
+                this.clearConfirmationState(); // Clear any previous confirmation
+
+                if (type === 'tab') {
+                    this.state.confirmingDeleteTabId = id;
+                } else {
+                    this.state.confirmingDeleteTodoId = id;
+                }
+
+                this.render();
+
+                this.state.confirmationTimeout = setTimeout(() => {
+                    this.clearConfirmationState();
+                    this.render();
+                }, 3000);
+            },
+
+            animateListTitle(element, text, speed = 50) {
+                if (this.state.titleAnimationTimeout) {
+                    clearTimeout(this.state.titleAnimationTimeout);
+                }
+                let charIndex = 0;
+                element.innerHTML = `<span class="typing-cursor"></span>`;
+
+                const type = () => {
+                    if (charIndex < text.length) {
+                        const currentText = this.escapeHtml(text.substring(0, charIndex + 1));
+                        element.innerHTML = `${currentText}<span class="typing-cursor"></span>`;
+                        charIndex++;
+                        this.state.titleAnimationTimeout = setTimeout(type, speed);
+                    } else {
+                        element.innerHTML = this.escapeHtml(text);
+                        this.state.titleAnimationTimeout = null;
+                    }
+                };
+                this.state.titleAnimationTimeout = setTimeout(type, speed);
+            },
+
+            getActiveTab() {
+                return this.state.tabs.find(t => t.id === this.state.activeTabId);
+            },
+            
+            updateTabScrollUI() {
+                const container = this.dom.tabsScrollContainer;
+                const scrollWidth = container.scrollWidth;
+                const clientWidth = container.clientWidth;
+
+                if (scrollWidth > clientWidth) {
+                    this.dom.scrollLeftButton.style.display = 'flex';
+                    this.dom.scrollRightButton.style.display = 'flex';
+
+                    const scrollLeft = container.scrollLeft;
+                    const maxScrollLeft = scrollWidth - clientWidth;
+                    
+                    this.dom.scrollLeftButton.disabled = scrollLeft === 0;
+                    this.dom.scrollRightButton.disabled = scrollLeft >= maxScrollLeft -1;
+
+                } else {
+                    this.dom.scrollLeftButton.style.display = 'none';
+                    this.dom.scrollRightButton.style.display = 'none';
+                }
+            },
+            
+            scrollTabs(direction) {
+                const container = this.dom.tabsScrollContainer;
+                const scrollAmount = container.clientWidth * 0.8 * direction;
+                container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+            },
+
+            scrollTabIntoView(tabId) {
+                const wrapper = this.dom.tabsNav.querySelector(`.tab-wrapper[data-tab-id="${tabId}"]`);
+                if(wrapper) {
+                    wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            },
+
+            escapeHtml(str) {
+                const div = document.createElement('div');
+                div.appendChild(document.createTextNode(str));
+                return div.innerHTML;
+            }
+        };
+
+        App.init();
+
+    </script>
+</body>
+</html>
